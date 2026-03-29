@@ -1,4 +1,8 @@
 #You will need your own survey files and set the path into your local directory. 
-#The following line is an example of how to ignore the survey files in the repository.
-
 /UWSM Community Input Transcripts
+
+# Python script in docx_to_txt.py converts .docx files to .txt files and saves them in the specified output folder.
+/UWSM_Input_Transcaripts_txt
+
+
+/.vscode
