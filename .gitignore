@@ -4,5 +4,8 @@
 # Python script in docx_to_txt.py converts .docx files to .txt files and saves them in the specified output folder.
 /UWSM_Input_Transcaripts_txt
 
-
+# Ignore the .vscode folder which contains local settings for Visual Studio Code.
 /.vscode
+
+# Ignore the .env file which contains sensitive information such as API keys.
+/.env

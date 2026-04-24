@@ -4,10 +4,11 @@ This is done using the pandas, regex, os libraries, which allows us to easily ma
 The code is structured in a way that it can be easily modified to include additional functionality, such as handling multiple .text files or adding error handling.
 '''
 
-# Import nessary libraries
+# Import necessary libraries
 import os
 import re
 import pandas as pd
+import numpy as np
 
 # Define input and output paths
 input_folder = "UWSM_Input_Transcaripts_txt"
@@ -17,10 +18,6 @@ output_file = "data/UWSM_Community_Input_Transcripts.csv"
 '''
 Each pattern captures everything after the label up to the end of that line. re.IGNORECASE handles any casing inconsistencies across files.
 '''
-
-import re
-import os
-import pandas as pd
 
 FIELD_PATTERNS = {
     "Name of Facilitator(s)": re.compile(
@@ -59,55 +56,84 @@ KEYWORDS_PATTERN = re.compile(
 )
 
 CONVERSATION_PATTERN = re.compile(
-    r"((?:Speaker\s*1|Transcript)\b[\s\S]+)",
+    r"((?:Speaker\s*1|Transcript|Core Ideas:)\b[\s\S]+)",
     re.IGNORECASE
 )
 
 # Initialize an empty list to hold the extracted data dictionaries
 data = {
-    "File Name" : [], 
-    "Name of Facilitator(s)" : [],
-    "Date of Conversation" :[],
-    "Name of Organization/Group":[],
-    "Meeting Location":[],
-    "Length of Time":[],
-    "Number of Attendees":[],
-    "Population":[],
-    "Summary Keywords":[],
-    "Conversation":[],
-}  
+    "File Name": [],
+    "Name of Facilitator(s)": [],
+    "Date of Conversation": [],
+    "Name of Organization/Group": [],
+    "Meeting Location": [],
+    "Length of Time": [],
+    "Number of Attendees": [],
+    "Population": [],
+    "Summary Keywords": [],
+    "Conversation": [],
+}
 
-# Defineing a for loop to process each file from input folder into a dictionary and then into a dataframe
+# Detects if a captured value is actually a field label from the next line
+FIELD_LABEL_BLEED = re.compile(
+    r"^\s*(?:"
+    r"Name\s+of\s+Facilitator"
+    r"|Date\s+of\s+[Cc]onversation"
+    r"|Name\s+of\s+Organization"
+    r"|Meeting(?:\s+Details)?"
+    r"|Length\s+of\s+[Tt]ime"
+    r"|Number\s+of\s+[Aa]ttendees"
+    r"|Population"
+    r")\s*[:/]",
+    re.IGNORECASE
+)
 
+def extract_fields(text: str) -> dict:
+    """Extract fields from text, returning NaN for missing, blank, newline-only, or bled values."""
+    result = {}
+    for field, pattern in FIELD_PATTERNS.items():
+        match = pattern.search(text)
+        if match:
+            lines = [line.strip() for line in match.group(1).splitlines() if line.strip()]
+            value = " ".join(lines)
+            # ← If value looks like a field label, it's bleed — kill it
+            if not value or FIELD_LABEL_BLEED.match(value):
+                result[field] = np.nan
+            else:
+                result[field] = value
+        else:
+            result[field] = np.nan
+    return result
+
+# Define a for loop to process each file from input folder into a dictionary and then into a dataframe
 for filename in os.listdir(input_folder):
     if filename.endswith(".txt"):
         with open(os.path.join(input_folder, filename), "r", encoding="utf-8") as f:
             text = f.read()
 
-        # Header-only slice prevents false matches inside transcript body
-        #header_text = "\n".join(text.splitlines()[:HEADER_LINE_LIMIT])
+        text = re.sub(r"Fill\s+out\s+this\s*:\s*", "", text, flags=re.IGNORECASE)
 
         data["File Name"].append(filename)
 
-        text = re.sub(r"Fill\s+out\s+this\s*:\s*", "", text, flags=re.IGNORECASE)
+        # store result in a separate variable, then append each field into data
+        fields = extract_fields(text)
+        for field in FIELD_PATTERNS:
+            data[field].append(fields[field])
 
-        for field, pattern in FIELD_PATTERNS.items():
-            match = pattern.search(text)  
-            data[field].append(match.group(1).strip() if match and match.group(1).strip() else "N/A")
-
-        keywords_match = KEYWORDS_PATTERN.search(text)  
+        keywords_match = KEYWORDS_PATTERN.search(text)
         data["Summary Keywords"].append(
-            keywords_match.group(1).strip() if keywords_match else "N/A"
+            keywords_match.group(1).strip() if keywords_match else np.nan
         )
 
-        # Conversation still searches full text — it needs the whole file
         conversation_match = CONVERSATION_PATTERN.search(text)
         data["Conversation"].append(
-            conversation_match.group(1).strip() if conversation_match else "N/A"
+            conversation_match.group(1).strip() if conversation_match else np.nan
         )
 
 # Create a DataFrame from the list of dictionaries
 df = pd.DataFrame(data)
+
+df.sort_values("File Name", inplace=True)
 
 # Save the DataFrame to a CSV file
 df.to_csv(output_file, index=False)
