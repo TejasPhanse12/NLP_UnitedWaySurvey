@@ -53,10 +53,9 @@ The output should make it straightforward to compare, for example, how transport
   - `Length of Time`
   - `Number of Attendees`
   - `Population — Identify for One or More Groups`
-  - `Connected / Disconnected`
-  - `Full Text`
+  - `Summary Keywords`
+  - `Text`
   - `Number of Words in Full Text`
-  - `Number of Sentences`
 
 ### Step 4 — Text Cleaning
 Apply the following preprocessing in order:
@@ -64,12 +63,62 @@ Apply the following preprocessing in order:
 2. **Sentence tokenization + filtering** — remove sentences with fewer than 3 words *unless* they contain a named entity
 3. **Intra-sentence deduplication** — remove repeated words within a single sentence
 
-### Step 5 — Embeddings and Topic Clustering
-- Generate sentence or document embeddings (e.g., using `sentence-transformers`)
-- Apply clustering (e.g., K-Means or HDBSCAN) to identify latent topics across conversations
-- Label clusters manually or via keyword extraction to align with known themes (e.g., transportation, cost of living, aging in place, social isolation)
+### Step 5 — AI-Based Speaker Classification
+This step utilizes the **Granite 3.2** model via **Ollama** to classify individual speakers based on their transcript contributions. Speakers are categorized into three primary roles:
+1. **Facilitator**: Individuals who guide the conversation, ask questions, and remain neutral.
+2. **ALICE (Asset Limited, Income Constrained, Employed)**: Participants describing personal financial struggles, instability, or lack of resources.
+3. **Above ALICE**: Participants engaging from a position of financial stability, often discussing community issues abstractly or showing concern for others.
 
-### Step 6 — Question-Based Semantic Matching
-- For each of the 4 research questions from the assignment instructions, use semantic similarity (embedding cosine distance) to retrieve the most relevant passages from each document
-- Aggregate answers at the corpus level, then slice by county, ALICE status, and other demographic fields
-- Output summaries and sentiment scores per question per demographic segment
+The classification process involves:
+- Joining all dialogue segments for each unique speaker within a file.
+- Using a structured JSON prompt to ensure consistent output from the LLM.
+- Applying a refinement logic to ensure only one "Facilitator" is identified per transcript (choosing the highest confidence match) and re-evaluating ambiguous "Above ALICE" segments.
+- Output is saved to `data/UWSM_Combined_Labeled.csv`.
+
+### Step 6 — Topic Modeling and Sentiment Analysis
+- **Embeddings**: Generate high-dimensional embeddings for classified segments using models like `sentence-transformers` or `nomic-embed-text`.
+- **Clustering**: Apply algorithms (K-Means, HDBSCAN) to group community concerns into latent topics (e.g., transportation, housing, childcare).
+- **Sentiment**: Aggregate sentiment scores per question per demographic segment to identify geographic and socio-economic variations.
+- **Visualizations**: Generate WordClouds and interactive cluster maps (e.g., `view1_clusters.html`) for exploration.
+
+---
+
+## 5. How to Run the Pipeline
+
+### Prerequisites
+- Python 3.10+
+- [Ollama](https://ollama.com/) installed and running.
+
+### Installation
+1. Install Python dependencies:
+   ```bash
+   pip install pandas numpy tqdm python-docx ollama matplotlib seaborn plotly mistralai wordcloud umap-learn hdbscan
+   ```
+
+### Setup and Initialization (Ollama)
+The speaker classification requires the Ollama server and the Granite model.
+1. **Initialize the Ollama Server**:
+   ```bash
+   ollama serve
+   ```
+2. **Pull the Granite 3.2 Model**:
+   In a separate terminal window, run:
+   ```bash
+   ollama pull granite3.2:latest
+   ```
+
+### Running the Workflow
+1. **Convert Word Documents**:
+   ```bash
+   python docx_to_txt.py
+   ```
+2. **Prepare Structured CSV**:
+   ```bash
+   python dataframe.py
+   ```
+3. **Run Speaker Classification**:
+   Open and execute all cells in the Jupyter notebook:
+   `speaker_analysis(granite).ipynb`
+4. **Run Clustering & Analysis**:
+   Explore findings and generate visualizations using:
+   `efo_clustering_pipeline_v2.ipynb`
