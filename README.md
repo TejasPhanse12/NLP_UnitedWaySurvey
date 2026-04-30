@@ -130,6 +130,7 @@ The speaker classification requires the Ollama server and the Granite model.
 3. **Run Speaker Classification**:
    Open and execute all cells in the Jupyter notebook:
    `speaker_analysis(granite).ipynb`
+   
 4. **Run Clustering & Analysis**:
    Explore findings and generate visualizations using:
    `efo_clustering_pipeline_v3.ipynb`
