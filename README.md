@@ -30,6 +30,10 @@ The output should make it straightforward to compare, for example, how transport
 
 ## 4. Initial Steps
 
+### Pipeline Flow
+![Pipe line](pipeline.png)
+
+---
 ### Step 1 — Read Source Files
 - Iterate over all 31 `.docx` files
 - Use `doc2txt` or `python-docx` to extract raw text
@@ -106,6 +110,13 @@ The speaker classification requires the Ollama server and the Granite model.
    ```bash
    ollama pull granite3.2:latest
    ```
+   **OR**
+
+   ```bash
+   ollama pull qwen2.5:14b
+   ```
+
+**NOTE:** You are not limited just to these two models you can use any model that is open-source like `Qwen3-8B 4-bit quantized model`. All you have to do is change the model name in the code
 
 ### Running the Workflow
 1. **Convert Word Documents**:
@@ -121,4 +132,4 @@ The speaker classification requires the Ollama server and the Granite model.
    `speaker_analysis(granite).ipynb`
 4. **Run Clustering & Analysis**:
    Explore findings and generate visualizations using:
-   `efo_clustering_pipeline_v2.ipynb`
+   `efo_clustering_pipeline_v3.ipynb`
